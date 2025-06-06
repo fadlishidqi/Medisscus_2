@@ -1,4 +1,5 @@
 <?php
+// database/migrations/0001_01_01_000000_create_users_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -23,6 +24,14 @@ return new class extends Migration
             $table->string('password');
             $table->string('profile_image')->nullable();
             $table->boolean('is_active')->default(true);
+            
+            // Device tracking fields
+            $table->string('device_id')->nullable();
+            $table->string('device_name')->nullable();
+            $table->timestamp('last_login_at')->nullable();
+            $table->ipAddress('last_login_ip')->nullable();
+            $table->text('user_agent')->nullable();
+            
             $table->rememberToken();
             $table->timestamps();
             
@@ -32,6 +41,8 @@ return new class extends Migration
             $table->index('university');
             $table->index('role');
             $table->index('is_active');
+            $table->index('device_id');
+            $table->index('last_login_at');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

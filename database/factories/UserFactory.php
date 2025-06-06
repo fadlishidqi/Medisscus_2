@@ -24,7 +24,6 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            // Tidak perlu set ID, akan auto generate UUID
             'name' => fake()->name(),
             'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
@@ -35,6 +34,11 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'is_active' => true,
+            'device_id' => null,
+            'device_name' => null,
+            'last_login_at' => null,
+            'last_login_ip' => null,
+            'user_agent' => null,
         ];
     }
 
@@ -55,6 +59,20 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => 'admin',
+        ]);
+    }
+
+    /**
+     * Create user with device info
+     */
+    public function withDevice(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'device_id' => Str::random(64),
+            'device_name' => fake()->randomElement(['Chrome Browser', 'Android Device', 'iPhone', 'Safari Browser']),
+            'last_login_at' => now(),
+            'last_login_ip' => fake()->ipv4(),
+            'user_agent' => fake()->userAgent(),
         ]);
     }
 }

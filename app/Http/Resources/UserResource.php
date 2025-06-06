@@ -1,5 +1,4 @@
 <?php
-// app/Http/Resources/UserResource.php
 
 namespace App\Http\Resources;
 
@@ -21,6 +20,11 @@ class UserResource extends JsonResource
             'profile_image' => $this->profile_image ? asset('storage/' . $this->profile_image) : null,
             'is_active' => $this->is_active,
             'email_verified_at' => $this->email_verified_at,
+            'device_info' => [
+                'device_name' => $this->device_name,
+                'last_login_at' => $this->last_login_at ? $this->last_login_at->format('Y-m-d H:i:s') : null,
+                'last_login_ip' => $this->last_login_ip
+            ],
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
         ];

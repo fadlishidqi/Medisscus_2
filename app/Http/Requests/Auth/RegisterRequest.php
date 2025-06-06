@@ -20,7 +20,7 @@ class RegisterRequest extends FormRequest
             'email' => 'required|string|email|max:255|unique:users',
             'university' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
-            'role' => 'nullable|in:user,admin',
+            // 'role' => 'nullable|in:user,admin',
             'password' => ['required', 'confirmed', Password::min(8)],
         ];
     }
