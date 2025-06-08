@@ -20,7 +20,7 @@ class EnrollmentController extends Controller
     {
         try {
             $user = Auth::user();
-            
+
             if (!$user) {
                 return response()->json([
                     'status' => 'error',
@@ -58,7 +58,7 @@ class EnrollmentController extends Controller
             $enrollments = $query->paginate($perPage);
 
             // Transform data
-            $transformedData = $enrollments->getCollection()->map(function($enrollment) {
+            $transformedData = $enrollments->getCollection()->map(function ($enrollment) {
                 return [
                     'id' => $enrollment->id,
                     'user_id' => $enrollment->user_id,
@@ -94,13 +94,12 @@ class EnrollmentController extends Controller
                     'to' => $enrollments->lastItem(),
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Get enrollments error: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to retrieve enrollments',
@@ -142,8 +141,8 @@ class EnrollmentController extends Controller
             }
 
             $existingEnrollment = Enrollment::where('user_id', $user->id)
-                                          ->where('program_id', $program->id)
-                                          ->first();
+                ->where('program_id', $program->id)
+                ->first();
 
             if ($existingEnrollment) {
                 return response()->json([
@@ -156,11 +155,14 @@ class EnrollmentController extends Controller
                 ], 400);
             }
 
+            $isFree = $program->price == 0;
+
             // Create enrollment
             $enrollment = Enrollment::create([
                 'user_id' => $user->id,
                 'program_id' => $program->id,
-                'paid_at' => $program->price == 0 ? now() : null // Auto paid for free programs
+                'is_active' => $isFree,
+                'paid_at' => $isFree ? now() : null,
             ]);
 
             $enrollment->load('program');
@@ -168,32 +170,15 @@ class EnrollmentController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Successfully enrolled in program',
-                'data' => [
-                    'id' => $enrollment->id,
-                    'user_id' => $enrollment->user_id,
-                    'program_id' => $enrollment->program_id,
-                    'is_active' => $enrollment->is_active,
-                    'is_paid' => $enrollment->is_paid,
-                    'paid_at' => $enrollment->paid_at ? $enrollment->paid_at->format('Y-m-d H:i:s') : null,
-                    'status' => $enrollment->status,
-                    'created_at' => $enrollment->created_at->format('Y-m-d H:i:s'),
-                    'program' => [
-                        'id' => $enrollment->program->id,
-                        'title' => $enrollment->program->title,
-                        'price' => $enrollment->program->price,
-                        'formatted_price' => 'Rp ' . number_format($enrollment->program->price, 0, ',', '.'),
-                        'is_free' => $enrollment->program->price == 0
-                    ]
-                ]
+                'data' => $enrollment
             ], 201);
-
         } catch (\Exception $e) {
             Log::error('Create enrollment error: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
                 'program_id' => $request->program_id,
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to enroll in program',
@@ -210,9 +195,9 @@ class EnrollmentController extends Controller
         try {
             $user = Auth::user();
             $enrollment = Enrollment::where('id', $id)
-                                  ->where('user_id', $user->id)
-                                  ->with('program')
-                                  ->first();
+                ->where('user_id', $user->id)
+                ->with('program')
+                ->first();
 
             if (!$enrollment) {
                 return response()->json([
@@ -247,14 +232,13 @@ class EnrollmentController extends Controller
                     ] : null
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Get enrollment error: ' . $e->getMessage(), [
                 'enrollment_id' => $id,
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to retrieve enrollment',
@@ -284,8 +268,8 @@ class EnrollmentController extends Controller
         try {
             $user = Auth::user();
             $enrollment = Enrollment::where('id', $id)
-                                  ->where('user_id', $user->id)
-                                  ->first();
+                ->where('user_id', $user->id)
+                ->first();
 
             if (!$enrollment) {
                 return response()->json([
@@ -295,11 +279,11 @@ class EnrollmentController extends Controller
             }
 
             $updateData = [];
-            
+
             if ($request->has('is_active')) {
                 $updateData['is_active'] = $request->is_active;
             }
-            
+
             if ($request->has('mark_as_paid') && $request->mark_as_paid) {
                 $updateData['paid_at'] = now();
             }
@@ -326,14 +310,13 @@ class EnrollmentController extends Controller
                     ]
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Update enrollment error: ' . $e->getMessage(), [
                 'enrollment_id' => $id,
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to update enrollment',
@@ -350,8 +333,8 @@ class EnrollmentController extends Controller
         try {
             $user = Auth::user();
             $enrollment = Enrollment::where('id', $id)
-                                  ->where('user_id', $user->id)
-                                  ->first();
+                ->where('user_id', $user->id)
+                ->first();
 
             if (!$enrollment) {
                 return response()->json([
@@ -367,14 +350,13 @@ class EnrollmentController extends Controller
                 'status' => 'success',
                 'message' => "Enrollment for '{$programTitle}' cancelled successfully"
             ]);
-
         } catch (\Exception $e) {
             Log::error('Cancel enrollment error: ' . $e->getMessage(), [
                 'enrollment_id' => $id,
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to cancel enrollment',
@@ -383,4 +365,33 @@ class EnrollmentController extends Controller
         }
     }
 
+    public function getEnrollmentByProgram(Request $request, $programId): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $enrollment = Enrollment::where('user_id', $user->id)
+                ->where('program_id', $programId)
+                ->with('program')
+                ->first();
+
+            if (!$enrollment) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Enrollment not found for this program'
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Enrollment retrieved successfully',
+                'data' => $enrollment
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Get enrollment by program error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'program_id' => $programId,
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
 }

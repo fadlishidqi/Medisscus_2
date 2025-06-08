@@ -25,12 +25,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'signed' => \App\Http\Middleware\ValidateSignature::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
             'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-            'validate.device' => \App\Http\Middleware\ValidateDevice::class,
-            
-            // Role-based middleware
-            'admin' => \App\Http\Middleware\IsAdmin::class,
-            'user' => \App\Http\Middleware\IsUser::class,
-            'role' => \App\Http\Middleware\CheckRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

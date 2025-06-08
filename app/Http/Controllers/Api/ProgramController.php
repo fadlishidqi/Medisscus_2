@@ -17,92 +17,43 @@ class ProgramController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        try {
-            $query = Program::query();
+        $query = Program::query();
 
-            // Search by title or description
-            if ($request->has('search') && $request->search !== '') {
-                $query->search($request->search);
-            }
-
-            // Filter by status
-            if ($request->has('status')) {
-                if ($request->status === 'active') {
-                    $query->active();
-                } elseif ($request->status === 'inactive') {
-                    $query->where('is_active', false);
-                }
-            }
-
-            // Filter by price range
-            if ($request->has('min_price')) {
-                $query->where('price', '>=', $request->min_price);
-            }
-            if ($request->has('max_price')) {
-                $query->where('price', '<=', $request->max_price);
-            }
-
-            // Filter free programs
-            if ($request->has('is_free') && $request->is_free == 'true') {
-                $query->where('price', 0);
-            }
-
-            // Sort
-            $allowedSorts = ['title', 'price', 'created_at', 'updated_at'];
-            $sortBy = in_array($request->get('sort_by'), $allowedSorts) ? $request->get('sort_by') : 'created_at';
-            $sortOrder = in_array($request->get('sort_order'), ['asc', 'desc']) ? $request->get('sort_order') : 'desc';
-            $query->orderBy($sortBy, $sortOrder);
-
-            // With enrollment count
-            $query->withCount('activeEnrollments');
-
-            // Pagination
-            $perPage = min($request->get('per_page', 10), 50); // Max 50 per page
-            $programs = $query->paginate($perPage);
-
-            // Transform data
-            $transformedData = $programs->getCollection()->map(function($program) {
-                return [
-                    'id' => $program->id,
-                    'title' => $program->title,
-                    'description' => $program->description,
-                    'slug' => $program->slug,
-                    'price' => $program->price,
-                    'formatted_price' => $program->formatted_price,
-                    'is_free' => $program->is_free,
-                    'is_active' => $program->is_active,
-                    'images' => $program->image_urls,
-                    'enrollment_count' => $program->active_enrollments_count,
-                    'created_at' => $program->created_at->format('Y-m-d H:i:s'),
-                    'updated_at' => $program->updated_at->format('Y-m-d H:i:s'),
-                ];
-            });
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Programs retrieved successfully',
-                'data' => $transformedData,
-                'pagination' => [
-                    'current_page' => $programs->currentPage(),
-                    'per_page' => $programs->perPage(),
-                    'total' => $programs->total(),
-                    'last_page' => $programs->lastPage(),
-                    'from' => $programs->firstItem(),
-                    'to' => $programs->lastItem(),
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Get programs error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to retrieve programs',
-                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
-            ], 500);
+        // query params to search by title
+        if ($request->has('title') && $request->title !== '') {
+            $query->where('title', 'like', '%' . $request->title . '%');
         }
+
+        // pagination
+        $perPage = $request->get('per_page', 10);
+        $sets = $query->paginate($perPage);
+
+        return response()->json([
+            'meta' => [
+                'status' => 'success',
+                'message' => 'Question banks retrieved successfully',
+            ],
+            'data' => $sets->items(),
+            'pagination' => [
+                'current_page' => $sets->currentPage(),
+                'per_page' => $sets->perPage(),
+                'total' => $sets->total(),
+                'last_page' => $sets->lastPage(),
+            ]
+        ]);
+    }
+
+    public function getActivateProgram(Request $request): JsonResponse
+    {
+        $programs = Program::where('is_active', true)->get();
+
+        return response()->json([
+            'meta' => [
+                'status' => 'success',
+                'message' => 'Active programs retrieved successfully',
+            ],
+            'data' => $programs,
+        ]);
     }
 
     /**
@@ -175,13 +126,12 @@ class ProgramController extends Controller
                     'updated_at' => $program->updated_at->format('Y-m-d H:i:s'),
                 ]
             ], 201);
-
         } catch (\Exception $e) {
             Log::error('Create program error: ' . $e->getMessage(), [
                 'request_data' => $request->all(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to create program',
@@ -198,9 +148,9 @@ class ProgramController extends Controller
         try {
             // Try to find by ID first, then by slug
             $program = Program::where('id', $identifier)
-                            ->orWhere('slug', $identifier)
-                            ->withCount('activeEnrollments')
-                            ->first();
+                ->orWhere('slug', $identifier)
+                ->withCount('activeEnrollments')
+                ->first();
 
             if (!$program) {
                 return response()->json([
@@ -227,13 +177,12 @@ class ProgramController extends Controller
                     'updated_at' => $program->updated_at->format('Y-m-d H:i:s'),
                 ]
             ]);
-
         } catch (\Exception $e) {
             Log::error('Get program error: ' . $e->getMessage(), [
                 'identifier' => $identifier,
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to retrieve program',
@@ -272,9 +221,9 @@ class ProgramController extends Controller
 
         try {
             $program = Program::findOrFail($id);
-            
+
             $updateData = $request->only(['title', 'description', 'price', 'is_active']);
-            
+
             // Handle images
             if ($request->has('images')) {
                 $images = [];
@@ -289,12 +238,12 @@ class ProgramController extends Controller
                 }
                 $updateData['images'] = $images;
             }
-            
+
             // Jika title berubah, generate slug baru
             if ($request->has('title') && $request->title !== $program->title) {
                 $updateData['slug'] = Program::generateUniqueSlug($request->title, $id);
             }
-            
+
             $program->update($updateData);
             $program = $program->fresh(); // Reload from database
 
@@ -315,7 +264,6 @@ class ProgramController extends Controller
                     'updated_at' => $program->updated_at->format('Y-m-d H:i:s'),
                 ]
             ]);
-
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
@@ -327,7 +275,7 @@ class ProgramController extends Controller
                 'request_data' => $request->all(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to update program',
@@ -343,7 +291,7 @@ class ProgramController extends Controller
     {
         try {
             $program = Program::findOrFail($id);
-            
+
             // Check if program has active enrollments
             $activeEnrollmentsCount = $program->activeEnrollments()->count();
             if ($activeEnrollmentsCount > 0) {
@@ -352,7 +300,7 @@ class ProgramController extends Controller
                     'message' => "Cannot delete program with {$activeEnrollmentsCount} active enrollment(s)"
                 ], 400);
             }
-            
+
             // Delete associated images if stored locally
             if ($program->images && is_array($program->images)) {
                 foreach ($program->images as $image) {
@@ -361,7 +309,7 @@ class ProgramController extends Controller
                     }
                 }
             }
-            
+
             $programTitle = $program->title;
             $program->delete();
 
@@ -369,7 +317,6 @@ class ProgramController extends Controller
                 'status' => 'success',
                 'message' => "Program '{$programTitle}' deleted successfully"
             ]);
-
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'status' => 'error',
@@ -380,7 +327,7 @@ class ProgramController extends Controller
                 'program_id' => $id,
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to delete program',

@@ -1,5 +1,4 @@
 <?php
-// database/migrations/0001_01_01_000000_create_users_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -24,40 +23,25 @@ return new class extends Migration
             $table->string('password');
             $table->string('profile_image')->nullable();
             $table->boolean('is_active')->default(true);
-            
-            // Device tracking fields
-            $table->string('device_id')->nullable();
-            $table->string('device_name')->nullable();
+            $table->text('current_jwt_token')->nullable();
+            $table->string('last_login_ip')->nullable();
+            $table->text('last_login_user_agent')->nullable();
             $table->timestamp('last_login_at')->nullable();
-            $table->ipAddress('last_login_ip')->nullable();
-            $table->text('user_agent')->nullable();
-            
             $table->rememberToken();
             $table->timestamps();
-            
+
             // Indexes untuk performance
             $table->index('email');
             $table->index('username');
             $table->index('university');
             $table->index('role');
             $table->index('is_active');
-            $table->index('device_id');
-            $table->index('last_login_at');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
-        });
-
-        Schema::create('sessions', function (Blueprint $table) {
-            $table->string('id')->primary();
-            $table->uuid('user_id')->nullable()->index();
-            $table->string('ip_address', 45)->nullable();
-            $table->text('user_agent')->nullable();
-            $table->longText('payload');
-            $table->integer('last_activity')->index();
         });
     }
 
@@ -68,6 +52,5 @@ return new class extends Migration
     {
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
-        Schema::dropIfExists('sessions');
     }
 };

@@ -20,11 +20,6 @@ class AdminUserSeeder extends Seeder
             'password' => Hash::make('kikipoiu'),
             'email_verified_at' => now(),
             'is_active' => true,
-            'device_id' => null,
-            'device_name' => null,
-            'last_login_at' => null,
-            'last_login_ip' => null,
-            'user_agent' => null,
         ]);
 
         User::create([
@@ -37,11 +32,6 @@ class AdminUserSeeder extends Seeder
             'password' => Hash::make('kikipoiu'),
             'email_verified_at' => now(),
             'is_active' => true,
-            'device_id' => null,
-            'device_name' => null,
-            'last_login_at' => null,
-            'last_login_ip' => null,
-            'user_agent' => null,
         ]);
     }
 }

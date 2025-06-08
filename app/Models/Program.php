@@ -9,7 +9,7 @@ class Program extends BaseModel
 {
     protected $fillable = [
         'title',
-        'description', 
+        'description',
         'slug',
         'price',
         'is_active',
@@ -25,14 +25,14 @@ class Program extends BaseModel
     protected static function boot()
     {
         parent::boot();
-        
+
         // create
         static::creating(function ($program) {
             if (empty($program->slug)) {
                 $program->slug = static::generateUniqueSlug($program->title);
             }
         });
-        
+
         // update
         static::updating(function ($program) {
             if ($program->isDirty('title') && empty($program->slug)) {
@@ -46,12 +46,12 @@ class Program extends BaseModel
         $slug = Str::slug($title);
         $originalSlug = $slug;
         $count = 1;
-        
+
         $query = static::where('slug', $slug);
         if ($id) {
             $query->where('id', '!=', $id);
         }
-        
+
         while ($query->exists()) {
             $slug = $originalSlug . '-' . $count;
             $count++;
@@ -60,7 +60,7 @@ class Program extends BaseModel
                 $query->where('id', '!=', $id);
             }
         }
-        
+
         return $slug;
     }
 
@@ -89,7 +89,7 @@ class Program extends BaseModel
     public function scopeSearch($query, $search)
     {
         return $query->where('title', 'like', '%' . $search . '%')
-                    ->orWhere('description', 'like', '%' . $search . '%');
+            ->orWhere('description', 'like', '%' . $search . '%');
     }
 
     // Accessors
@@ -113,12 +113,17 @@ class Program extends BaseModel
         if (!$this->images || !is_array($this->images)) {
             return [];
         }
-        
-        return array_map(function($image) {
+
+        return array_map(function ($image) {
             if (filter_var($image, FILTER_VALIDATE_URL)) {
                 return $image;
             }
             return asset('storage/' . $image);
         }, $this->images);
+    }
+
+    public function tryouts()
+    {
+        return $this->hasMany(Tryout::class);
     }
 }
